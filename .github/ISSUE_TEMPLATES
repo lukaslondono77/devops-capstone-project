@@ -1,11 +1,38 @@
-**As a** [role]  
-**I need** [function]  
-**So that** [benefit]  
+**As a** developer  
+**I need** to add read, update, delete, and list customer account functionalities to an existing Python Flask-based REST API
+**So that** other microservices can fully manage customer accounts on our e-commerce website
+
+
       
 ### Details and Assumptions
-    * [document what you know]      
+    * The database model for the customer accounts has already been developed.
+    * There is an existing Python Flask-based REST API with a working endpoint to create a customer account.
+    * The REST API should follow RESTful principles, ensuring proper use of HTTP methods and status codes.
+    * Authentication and authorization mechanisms are out of scope for this task.
+    * The development environment will be an online lab setup.
+    * We need to plan for setting up the development environment, implementing the new endpoints, and testing the endpoints.
+     
 ### Acceptance Criteria     
     gherkin 
-    Given [some context]
-    When [certain action is taken]
-    Then [the outcome of action is observed]
+    Given  a valid customer ID
+    When a PUT request is made to /customers/<id> with the update data
+    Then the customer account is updated and a 200 status code is returned
+    And if the customer ID does not exist, a 404 status code is returned
+    And if the update data is invalid, a 400 status code is returned
+
+Update 
+    Given a valid customer ID and valid update data
+    When a PUT request is made to /customers/<id> with the update data
+    Then the customer account is updated and a 200 status code is returned
+    And if the customer ID does not exist, a 404 status code is returned
+    And if the update data is invalid, a 400 status code is returned
+
+Delete
+    Given a valid customer ID
+    When a DELETE request is made to /customers/<id>
+    Then the customer account is deleted and a 200 status code is returned
+    And if the customer ID does not exist, a 404 status code is returned
+List 
+   Define the route GET /customers.
+   Implement the function to list all customers from the database.
+
