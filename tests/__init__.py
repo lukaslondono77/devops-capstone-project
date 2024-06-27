@@ -1,4 +1,4 @@
-@@ -1,22 +1 @@
+
 """
 Package: service
 Package for the application models and services routes
