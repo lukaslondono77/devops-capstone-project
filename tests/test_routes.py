@@ -1,11 +1,10 @@
-# tests/test_account_service.py
-
 import os
 import logging
 from unittest import TestCase
 from service.common import status  # HTTP Status Codes
 from service.models import db, Account, init_db
 from service.routes import app
+from service import talisman  # Import Flask-Talisman
 
 # Import AccountFactory if defined elsewhere
 from tests.factories import AccountFactory
@@ -15,6 +14,9 @@ DATABASE_URI = os.getenv(
 )
 
 BASE_URL = "/accounts"
+
+# Define HTTPS environment for testing
+HTTPS_ENVIRON = {'wsgi.url_scheme': 'https'}
 
 ######################################################################
 #  T E S T   C A S E S
@@ -30,6 +32,9 @@ class TestAccountService(TestCase):
         app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URI
         app.logger.setLevel(logging.CRITICAL)
         init_db(app)
+        
+        # Disable forced HTTPS for testing
+        talisman.force_https = False
 
     @classmethod
     def tearDownClass(cls):
@@ -169,3 +174,15 @@ class TestAccountService(TestCase):
         response = self.client.put(BASE_URL)
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
+    def test_security_headers(self):
+        """Test that security headers are returned"""
+        response = self.client.get('/', environ_overrides=HTTPS_ENVIRON)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        headers = {
+            'X-Frame-Options': 'SAMEORIGIN',
+            'X-Content-Type-Options': 'nosniff',
+            'Content-Security-Policy': "default-src 'self'; object-src 'none'",
+            'Referrer-Policy': 'strict-origin-when-cross-origin'
+        }
+        for key, value in headers.items():
+            self.assertEqual(response.headers.get(key), value)

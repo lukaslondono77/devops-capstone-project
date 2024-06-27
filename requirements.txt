@@ -11,6 +11,7 @@ python-dotenv==0.20.0
 # Runtime dependencies
 gunicorn==20.1.0
 honcho==1.1.0
+Flask-Talisman==0.8.0  # Add Flask-Talisman with your desired version here
 
 # Code quality
 pylint==2.14.0
