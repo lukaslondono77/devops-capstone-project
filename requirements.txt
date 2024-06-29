@@ -1,4 +1,4 @@
-# Pin dependencies that might cause breakage
+# Pin dependancies that might cause breakage
 Werkzeug==2.1.2
 SQLAlchemy==1.4.46
 
@@ -11,8 +11,6 @@ python-dotenv==0.20.0
 # Runtime dependencies
 gunicorn==20.1.0
 honcho==1.1.0
-Flask-Talisman==0.8.0  # Added Flask-Talisman with version 0.8.0
-Flask-Cors==4.0.0  # Added Flask-Cors with version 4.0.0
 
 # Code quality
 pylint==2.14.0
@@ -29,3 +27,7 @@ coverage==6.3.2
 
 # Utilities
 httpie==3.2.1
+
+#Security
+Flask-Talisman==1.1.0
+Flask-Cors
