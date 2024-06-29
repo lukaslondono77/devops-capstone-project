@@ -1,12 +1,10 @@
-# app.py
-
 """
 Account Service
 
 This microservice handles the lifecycle of Accounts
 """
 # pylint: disable=unused-import
-from flask import jsonify, request, make_response, abort   # noqa; F401
+from flask import jsonify, request, make_response, abort, url_for   # noqa; F401
 from service.models import Account
 from service.common import status  # HTTP Status Codes
 from . import app  # Import Flask application
@@ -44,7 +42,7 @@ def index():
 def create_accounts():
     """
     Creates an Account
-    This endpoint will create an Account based on the data in the body that is posted
+    This endpoint will create an Account based the data in the body that is posted
     """
     app.logger.info("Request to create an Account")
     check_content_type("application/json")
@@ -63,7 +61,6 @@ def create_accounts():
 ######################################################################
 # LIST ALL ACCOUNTS
 ######################################################################
-
 @app.route("/accounts", methods=["GET"])
 def list_accounts():
     """
@@ -82,58 +79,62 @@ def list_accounts():
 ######################################################################
 # READ AN ACCOUNT
 ######################################################################
-
 @app.route("/accounts/<int:account_id>", methods=["GET"])
-def get_account(account_id):
+def get_accounts(account_id):
     """
     Reads an Account
-    This endpoint will read an Account based on the account_id that is requested
+    This endpoint will read an Account based the account_id that is requested
     """
     app.logger.info("Request to read an Account with id: %s", account_id)
     account = Account.find(account_id)
     if not account:
         abort(status.HTTP_404_NOT_FOUND, f"Account with id [{account_id}] could not be found.")
-    return jsonify(account.serialize()), status.HTTP_200_OK
+    return account.serialize(), status.HTTP_200_OK
 
 
 ######################################################################
 # UPDATE AN EXISTING ACCOUNT
 ######################################################################
 @app.route("/accounts/<int:account_id>", methods=["PUT"])
-def update_account(account_id):
+def update_accounts(account_id):
     """
     Update an Account
     This endpoint will update an Account based on the posted data
     """
     app.logger.info("Request to update an Account with id: %s", account_id)
+
     account = Account.find(account_id)
     if not account:
         abort(status.HTTP_404_NOT_FOUND, f"Account with id [{account_id}] could not be found.")
+
     account.deserialize(request.get_json())
     account.update()
+
     return account.serialize(), status.HTTP_200_OK
 
 
 ######################################################################
 # DELETE AN ACCOUNT
 ######################################################################
-
 @app.route("/accounts/<int:account_id>", methods=["DELETE"])
-def delete_account(account_id):
+def delete_accounts(account_id):
     """
     Delete an Account
     This endpoint will delete an Account based on the account_id that is requested
     """
     app.logger.info("Request to delete an Account with id: %s", account_id)
+
     account = Account.find(account_id)
     if account:
         account.delete()
+
     return "", status.HTTP_204_NO_CONTENT
 
 
 ######################################################################
-# UTILITY FUNCTIONS
+#  U T I L I T Y   F U N C T I O N S
 ######################################################################
+
 
 def check_content_type(media_type):
     """Checks that the media type is correct"""
@@ -145,20 +146,3 @@ def check_content_type(media_type):
         status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
         f"Content-Type must be {media_type}",
     )
-
-
-######################################################################
-# ERROR HANDLERS
-######################################################################
-
-@app.errorhandler(status.HTTP_405_METHOD_NOT_ALLOWED)
-def method_not_allowed(error):
-    """
-    Handle Method Not Allowed Error
-    """
-    app.logger.error("Method Not Allowed: %s", error)
-    return jsonify(error=str(error)), status.HTTP_405_METHOD_NOT_ALLOWED
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
