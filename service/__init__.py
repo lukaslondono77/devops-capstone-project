@@ -1,4 +1,3 @@
-
 """
 Package: service
 Package for the application models and service routes
@@ -14,8 +13,6 @@ from flask_cors import CORS
 
 # Create Flask application
 app = Flask(__name__)
-talisman = Talisman(app)
-CORS(app)
 app.config.from_object(config)
 
 # Import the routes After the Flask app is created
@@ -24,6 +21,10 @@ from service import routes, models  # noqa: F401 E402
 
 # pylint: disable=wrong-import-position
 from service.common import error_handlers, cli_commands  # noqa: F401 E402
+
+# Configure Talisman for security headers
+talisman = Talisman(app)
+CORS(app)
 
 # Set up logging for production
 log_handlers.init_logging(app, "gunicorn.error")
