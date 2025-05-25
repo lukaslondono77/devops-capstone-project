@@ -2,6 +2,10 @@
 Package: service
 Package for the Account service
 """
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 import os
@@ -19,7 +23,12 @@ app.logger.info('Logging established')
 
 # Initialize the database
 from service import models
-models.init_db(app)
+
+try:
+    models.init_db(app)
+except Exception as e:
+    app.logger.critical('Database initialization failed: %s', e)
+    sys.exit(4)
 
 # Import routes last to avoid circular import
 from service import routes
