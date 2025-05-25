@@ -6,11 +6,13 @@ import logging
 import unittest
 import os
 from service import app
-from service.models import Account, DataValidationError, db
+from service.models import Account, DataValidationError, db, PersistentBase, logger
 from tests.factories import AccountFactory
+import datetime
+from flask import Flask
 
 DATABASE_URI = os.getenv(
-    "DATABASE_URI", "postgresql://postgres:postgres@localhost:5432/postgres"
+    "DATABASE_URI", "postgresql://postgres:postgres@localhost:5433/postgres"
 )
 
 
@@ -41,6 +43,40 @@ class TestAccount(unittest.TestCase):
     def tearDown(self):
         """This runs after each test"""
         db.session.remove()
+
+    def test_persistent_base_init(self):
+        """Test PersistentBase initialization"""
+        base = PersistentBase()
+        self.assertIsNone(base.id)
+
+    def test_persistent_base_create(self):
+        """Test PersistentBase create method"""
+        account = AccountFactory()
+        # Test create with logging
+        with self.assertLogs(logger, level='INFO') as log:
+            account.create()
+            self.assertIn(f"Creating {account.name}", log.output[0])
+        self.assertIsNotNone(account.id)
+
+    def test_persistent_base_update(self):
+        """Test PersistentBase update method"""
+        account = AccountFactory()
+        account.create()
+        # Test update with logging
+        with self.assertLogs(logger, level='INFO') as log:
+            account.update()
+            self.assertIn(f"Updating {account.name}", log.output[0])
+
+    def test_persistent_base_delete(self):
+        """Test PersistentBase delete method"""
+        account = AccountFactory()
+        account.create()
+        # Test delete with logging
+        with self.assertLogs(logger, level='INFO') as log:
+            account.delete()
+            self.assertIn(f"Deleting {account.name}", log.output[0])
+        # Verify account is deleted
+        self.assertIsNone(Account.find(account.id))
 
     ######################################################################
     #  T E S T   C A S E S
@@ -134,13 +170,30 @@ class TestAccount(unittest.TestCase):
 
     def test_find_by_name(self):
         """It should Find an Account by name"""
-        account = AccountFactory()
-        account.create()
+        # Create test accounts
+        account1 = AccountFactory()
+        account2 = AccountFactory()
+        account3 = AccountFactory()
+        account1.name = "John"
+        account2.name = "John"
+        account3.name = "Jane"
+        account1.create()
+        account2.create()
+        account3.create()
 
-        # Fetch it back by name
-        same_account = Account.find_by_name(account.name)[0]
-        self.assertEqual(same_account.id, account.id)
-        self.assertEqual(same_account.name, account.name)
+        # Test finding accounts by name
+        accounts = Account.find_by_name("John").all()
+        self.assertEqual(len(accounts), 2)
+        self.assertEqual(accounts[0].name, "John")
+        self.assertEqual(accounts[1].name, "John")
+
+        # Test finding non-existent name
+        accounts = Account.find_by_name("Bob").all()
+        self.assertEqual(len(accounts), 0)
+
+        # Test finding with empty string
+        accounts = Account.find_by_name("").all()
+        self.assertEqual(len(accounts), 0)
 
     def test_serialize_an_account(self):
         """It should Serialize an account"""
@@ -174,4 +227,70 @@ class TestAccount(unittest.TestCase):
     def test_deserialize_with_type_error(self):
         """It should not Deserialize an account with a TypeError"""
         account = Account()
-        self.assertRaises(DataValidationError, account.deserialize, [])
+        # Test with non-dict data
+        with self.assertRaises(DataValidationError) as context:
+            account.deserialize("not a dict")
+        self.assertIn("Invalid Account: body of request contained bad or no data", str(context.exception))
+        
+        # Test with None
+        with self.assertRaises(DataValidationError) as context:
+            account.deserialize(None)
+        self.assertIn("Invalid Account: body of request contained bad or no data", str(context.exception))
+
+    def test_deserialize_type_error(self):
+        acc = Account()
+        with self.assertRaises(DataValidationError):
+            acc.deserialize("not-a-dict")
+
+    def test_deserialize_empty_dict(self):
+        acc = Account()
+        with self.assertRaises(DataValidationError):
+            acc.deserialize({})
+
+    def test_deserialize_missing_field(self):
+        acc = Account()
+        # Missing required fields: email, address
+        payload = {'name': 'Test'}
+        with self.assertRaises(DataValidationError) as cm:
+            acc.deserialize(payload)
+        self.assertIn('missing', str(cm.exception).lower())
+
+    def test_deserialize_invalid_date(self):
+        acc = Account()
+        payload = {
+            'name': 'Test',
+            'email': 't@e.com',
+            'address': 'x',
+            'phone_number': '123',
+            'date_joined': 'not-a-date'
+        }
+        with self.assertRaises(DataValidationError):
+            acc.deserialize(payload)
+
+    def test_serialize_repr_and_find_by_name(self):
+        # Create a minimal Flask app to initialize the in-memory DB
+        app = Flask(__name__)
+        app.config['TESTING'] = True
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        Account.init_db(app)
+
+        with app.app_context():
+            # Create two accounts
+            a1 = Account(name='Alice', email='a@a.com', address='Addr', phone_number='000', date_joined=datetime.date.today())
+            a2 = Account(name='Bob',   email='b@b.com', address='Addr', phone_number='111', date_joined=datetime.date.today())
+            db.session.add_all([a1, a2])
+            db.session.commit()
+            # serialize()
+            data = a1.serialize()
+            self.assertEqual(data['name'], 'Alice')
+            # __repr__()
+            rep = repr(a1)
+            self.assertTrue(rep.startswith('<Account '))
+            # find_by_name()
+            results = Account.find_by_name('Alice').all()
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0].name, 'Alice')
+
+if __name__ == '__main__':  # pragma: no cover
+    unittest.main()

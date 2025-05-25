@@ -5,6 +5,7 @@ SQLAlchemy==1.4.46
 # Build dependencies
 Flask==2.1.2
 Flask-SQLAlchemy==2.5.1
+Flask-CORS==3.0.10
 psycopg2-binary==2.9.3
 python-dotenv==0.20.0
 
@@ -21,6 +22,7 @@ black==22.3.0
 nose==1.3.7
 pinocchio==0.4.3
 factory-boy==2.12.0
+pytest==7.4.0
 
 # Code Coverage
 coverage==6.3.2

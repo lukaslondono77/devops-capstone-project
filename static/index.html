@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Service</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container { max-width: 960px; }
+        .account-form { margin-bottom: 2rem; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Account Service</h1>
+        
+        <!-- About Section -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">About</h5>
+                <p class="card-text">
+                    This is a RESTful Account Service that provides CRUD operations for managing accounts.
+                    The service is built using Flask and follows REST principles.
+                </p>
+            </div>
+        </div>
+
+        <!-- Account List -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Accounts</h5>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Address</th>
+                                <th>Phone Number</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accountList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Form -->
+        <div class="card account-form">
+            <div class="card-body">
+                <h5 class="card-title">Create/Update Account</h5>
+                <form id="accountForm">
+                    <input type="hidden" id="accountId">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        <input type="text" class="form-control" id="address" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phoneNumber" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="phoneNumber" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000/accounts';
+        let accounts = [];
+
+        // Fetch all accounts
+        async function fetchAccounts() {
+            try {
+                const response = await fetch(API_URL);
+                accounts = await response.json();
+                displayAccounts();
+            } catch (error) {
+                console.error('Error fetching accounts:', error);
+            }
+        }
+
+        // Display accounts in the table
+        function displayAccounts() {
+            const tbody = document.getElementById('accountList');
+            tbody.innerHTML = '';
+            accounts.forEach(account => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${account.id}</td>
+                    <td>${account.name}</td>
+                    <td>${account.email}</td>
+                    <td>${account.address}</td>
+                    <td>${account.phone_number}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick="editAccount(${account.id})">Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteAccount(${account.id})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Create or update account
+        async function submitAccount(event) {
+            event.preventDefault();
+            const accountId = document.getElementById('accountId').value;
+            const account = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                address: document.getElementById('address').value,
+                phone_number: document.getElementById('phoneNumber').value
+            };
+
+            try {
+                const url = accountId ? `${API_URL}/${accountId}` : API_URL;
+                const method = accountId ? 'PUT' : 'POST';
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(account)
+                });
+
+                if (response.ok) {
+                    resetForm();
+                    fetchAccounts();
+                }
+            } catch (error) {
+                console.error('Error saving account:', error);
+            }
+        }
+
+        // Edit account
+        function editAccount(id) {
+            const account = accounts.find(a => a.id === id);
+            if (account) {
+                document.getElementById('accountId').value = account.id;
+                document.getElementById('name').value = account.name;
+                document.getElementById('email').value = account.email;
+                document.getElementById('address').value = account.address;
+                document.getElementById('phoneNumber').value = account.phone_number;
+            }
+        }
+
+        // Delete account
+        async function deleteAccount(id) {
+            if (confirm('Are you sure you want to delete this account?')) {
+                try {
+                    const response = await fetch(`${API_URL}/${id}`, {
+                        method: 'DELETE'
+                    });
+                    if (response.ok) {
+                        fetchAccounts();
+                    }
+                } catch (error) {
+                    console.error('Error deleting account:', error);
+                }
+            }
+        }
+
+        // Reset form
+        function resetForm() {
+            document.getElementById('accountForm').reset();
+            document.getElementById('accountId').value = '';
+        }
+
+        // Event listeners
+        document.getElementById('accountForm').addEventListener('submit', submitAccount);
+        document.addEventListener('DOMContentLoaded', fetchAccounts);
+    </script>
+</body>
+</html> 

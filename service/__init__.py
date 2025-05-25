@@ -1,37 +1,28 @@
 """
 Package: service
-Package for the application models and service routes
-This module creates and configures the Flask app and sets up the logging
-and SQL database
+Package for the Account service
 """
-import sys
-from flask import Flask
-from service import config
-from service.common import log_handlers
+from flask import Flask, jsonify, send_from_directory
+from flask_cors import CORS
+import os
 
 # Create Flask application
-app = Flask(__name__)
-app.config.from_object(config)
+app = Flask(__name__, static_folder='../static')
+CORS(app)  # Enable CORS for all routes
 
-# Import the routes After the Flask app is created
-# pylint: disable=wrong-import-position, cyclic-import, wrong-import-order
-from service import routes, models  # noqa: F401 E402
-
-# pylint: disable=wrong-import-position
-from service.common import error_handlers, cli_commands  # noqa: F401 E402
+app.config['SECRET_KEY'] = 'secret-for-dev'
+app.config['LOGGING_LEVEL'] = 'INFO'
 
 # Set up logging for production
-log_handlers.init_logging(app, "gunicorn.error")
+print('Setting up logging for {}...'.format(__name__))
+app.logger.info('Logging established')
 
-app.logger.info(70 * "*")
-app.logger.info("  A C C O U N T   S E R V I C E   R U N N I N G  ".center(70, "*"))
-app.logger.info(70 * "*")
+# Initialize the database
+from service import models
+models.init_db(app)
 
-try:
-    models.init_db(app)  # make our database tables
-except Exception as error:  # pylint: disable=broad-except
-    app.logger.critical("%s: Cannot continue", error)
-    # gunicorn requires exit code 4 to stop spawning workers when they die
-    sys.exit(4)
+# Import routes last to avoid circular import
+from service import routes
 
-app.logger.info("Service initialized!")
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8000)

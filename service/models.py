@@ -5,6 +5,7 @@ All of the models are stored in this module
 """
 import logging
 from datetime import date
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
 logger = logging.getLogger("flask.app")
@@ -122,7 +123,12 @@ class Account(db.Model, PersistentBase):
             self.phone_number = data.get("phone_number")
             date_joined = data.get("date_joined")
             if date_joined:
-                self.date_joined = date.fromisoformat(date_joined)
+                try:
+                    self.date_joined = date.fromisoformat(date_joined)
+                except ValueError as error:
+                    raise DataValidationError(
+                        "Invalid Account: invalid date format - " + str(error)
+                    ) from error
             else:
                 self.date_joined = date.today()
         except KeyError as error:

@@ -6,7 +6,7 @@ Account Service
 This microservice handles the lifecycle of Accounts
 """
 # pylint: disable=unused-import
-from flask import jsonify, request, make_response, abort   # noqa; F401
+from flask import jsonify, request, make_response, abort, send_from_directory   # noqa; F401
 from service.models import Account
 from service.common import status  # HTTP Status Codes
 from . import app  # Import Flask application
@@ -27,14 +27,7 @@ def health():
 @app.route("/")
 def index():
     """Root URL response"""
-    return (
-        jsonify(
-            name="Account REST API Service",
-            version="1.0",
-            # paths=url_for("list_accounts", _external=True),
-        ),
-        status.HTTP_200_OK,
-    )
+    return send_from_directory(app.static_folder, 'index.html')
 
 
 ######################################################################
@@ -126,8 +119,9 @@ def delete_account(account_id):
     """
     app.logger.info("Request to delete an Account with id: %s", account_id)
     account = Account.find(account_id)
-    if account:
-        account.delete()
+    if not account:
+        abort(status.HTTP_404_NOT_FOUND, f"Account with id [{account_id}] could not be found.")
+    account.delete()
     return "", status.HTTP_204_NO_CONTENT
 
 
@@ -140,6 +134,7 @@ def check_content_type(media_type):
     content_type = request.headers.get("Content-Type")
     if content_type and content_type == media_type:
         return
+
     app.logger.error("Invalid Content-Type: %s", content_type)
     abort(
         status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
@@ -152,7 +147,7 @@ def check_content_type(media_type):
 ######################################################################
 
 @app.errorhandler(status.HTTP_405_METHOD_NOT_ALLOWED)
-def method_not_allowed(error):
+def method_not_allowed(error):  # pragma: no cover
     """
     Handle Method Not Allowed Error
     """
@@ -160,5 +155,5 @@ def method_not_allowed(error):
     return jsonify(error=str(error)), status.HTTP_405_METHOD_NOT_ALLOWED
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':  # pragma: no cover
     app.run(debug=True)

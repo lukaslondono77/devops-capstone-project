@@ -83,3 +83,14 @@ def internal_server_error(error):
         ),
         status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
+
+
+@app.errorhandler(status.HTTP_401_UNAUTHORIZED)
+def unauthorized(error):
+    """Handles unauthorized requests with 401_UNAUTHORIZED"""
+    message = str(error)
+    app.logger.warning(message)
+    return (
+        jsonify(status=status.HTTP_401_UNAUTHORIZED, error="Unauthorized", message=message),
+        status.HTTP_401_UNAUTHORIZED,
+    )
